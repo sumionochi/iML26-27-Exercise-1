@@ -195,7 +195,7 @@ presentation/           # presentation.pdf
 
 ## AI statement
 
-We used Claude Code (Claude Opus 5.5) for this exercise. We am new to machine learning, so we first used it to -
+We used Claude Code (Claude Opus 5.5) for this exercise. We are new to machine learning, so we first used it to -
 learn the concepts: decision trees, train/test splits, accuracy, overfitting, correlation vs. causation and local vs. global interpretability.
 
 We then under Claude codes supervision wrote the code (metric, models, datasets, experiment and self-test scripts, tests) and this README, and explained every part to us. We ran the experiments, took the human self-test, which sets the threshold, checked the results, and made the presentation slides ourselves without AI. We take responsibility for the content of this repository.
