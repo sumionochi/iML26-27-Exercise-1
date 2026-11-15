@@ -105,13 +105,18 @@ def plot_self_test(results: pd.DataFrame, path: Path) -> None:
     fig, (left, right) = plt.subplots(1, 2, figsize=(9, 3.6))
     for ax, column, label in [(left, "rating", "understanding (1-5)"),
                               (right, "seconds_per_prediction", "seconds per prediction")]:
-        ax.plot(results["cognitive_load"], results[column], "o-", color="#2a7ab9")
+        trees = results[results["model"].str.startswith("tree")].sort_values("cognitive_load")
+        forests = results[~results["model"].str.startswith("tree")]
+        ax.plot(trees["cognitive_load"], trees[column], "o-", color="#2a7ab9", label="decision tree")
+        ax.scatter(forests["cognitive_load"], forests[column], marker="s", color="#2f9e44", label="random forest",
+                   zorder=3)
         for _, row in results.iterrows():
             ax.annotate(row["model"], (row["cognitive_load"], row[column]), textcoords="offset points",
                         xytext=(4, 4), fontsize=7)
         ax.set_xlabel("cognitive load (mental steps)")
         ax.set_ylabel(label)
         ax.grid(alpha=0.3)
+    left.legend(fontsize=8)
     fig.tight_layout()
     fig.savefig(path, dpi=150)
     plt.close(fig)

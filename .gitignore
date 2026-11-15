@@ -24,3 +24,10 @@ data/*
 # Experiment results (scripts/run_experiment.py)
 results/*
 !results/.gitkeep
+# Keep the final results so the README can show them. self_test.csv holds the human answers that set the
+# threshold: it cannot be regenerated without a person, so it must be committed for reproducibility.
+!results/self_test.csv
+!results/self_test.png
+!results/scores.csv
+!results/summary.csv
+!results/accuracy_vs_cognitive_load.png

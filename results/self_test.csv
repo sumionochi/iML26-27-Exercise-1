@@ -1,0 +1,8 @@
+model,cognitive_load,n_correct,n_asked,gave_up,seconds_per_prediction,rating
+tree_d1,3.0,3,3,False,4.912642916645079,5
+tree_d2,8.0,3,3,False,9.332303513675773,5
+tree_d3,15.0,3,3,False,4.083767083007842,5
+tree_d4,25.0,2,3,False,4.051965277680817,4
+tree_d5,35.98572884811417,2,3,False,5.723066208321446,3
+tree_d6,52.94597349643221,0,3,True,4.266028708021622,1
+forest_3_d2,22.0,0,3,True,3.0885060409782454,1
