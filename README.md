@@ -1,98 +1,96 @@
-# iML 26/27 – Exercise 1: Quantifying Interpretability
+# iML 26/27 – Exercise 1: Cognitive Load of Tree Models
 
-Template repository for the bonus task. **Fork this repository**, replace the example with your own
-work, and add the PDF of your presentation. **You are expected to rewrite this README as well**: by
-the deadline it should describe your approach, how to reproduce your results, and contain your own
-[AI statement](#ai-statement).
+We measure how interpretable a tree model is by counting the **mental steps** a person needs to understand
+it and to make a prediction with it by hand. The metric works for the whole tree model class: decision trees,
+random forests and gradient-boosted trees. We apply it to 18 models on 4 datasets and use a human self-test
+to find the **threshold of interpretability**. This submission goes for **Task 1 (1 point)**.
 
-> **Deadline: Sunday, November 15th, 2026, 23:59.** Your code and presentation must be submitted by then.
+## The metric: cognitive load
 
-## Tasks
+A tree model consists of one or more binary decision trees. To work with it, a person has to:
 
-### Task 1 (1  point): An interpretability metric
+| Part | What the person does | How we count it |
+|---|---|---|
+| `S` | read every rule (global understanding) | number of yes/no questions (split nodes) in all trees |
+| `F` | know what every feature means (vocabulary) | number of distinct features used anywhere |
+| `Q` | follow one prediction (local simulation) | questions answered from root to leaf, summed over all trees, weighted by the share of training samples on each path |
+| `T - 1` | combine the trees' answers (ensembles only) | number of trees minus one |
 
-Develop a metric that quantifies model interpretability. It has to work within one model class,
-e.g. for decision trees, random forests and gradient-boosted trees. Then evaluate a few
-inherently interpretable models and/or datasets and investigate the *threshold of
-interpretability*: at what point does a model stop being interpretable?
+**Cognitive load = S + F + Q + (T − 1)**, in mental steps. **Lower means more interpretable.**
 
-- A trivial idea would be the *number of features used*. Your metric should go beyond that.
-- We will check that you did not simply copy someone else's interpretability metric.
-- You may use an LLM-based metric. In that case you have to provide evidence that its scores
-  agree with human judgments.
+Why this goes beyond a simple size measure:
 
-### Task 2 (2 bonus points): Meta-features and interpretability
+- It combines **global** understanding (`S`, `F`) with **local** simulation (`Q`), the two main ways people
+  use an interpretable model.
+- `Q` depends on the data: a tree whose common cases are answered after one question is easier to use than
+  an equally large tree where every case needs many questions.
+- It works across model families: a forest pays for every tree it adds (`S`, `Q`) and for voting (`T − 1`).
+- Depth alone is misleading: on breast cancer and wine, trees stop growing at depth 4–5, so "depth 10" there
+  is as easy as "depth 5". The cognitive load notices this, while a depth limit does not.
 
-Find connections between a dataset's meta-features (e.g. number of samples, number of features,
-class balance, …) and the interpretability, measured with your metric from Task 1, of several
-inherently interpretable models. This repository has no code for Task 2. Structure it as you see fit.
+All parts are counts of things a person processes, so they share one unit and are weighted equally.
+A depth-1 tree (one question) has a load of exactly 3: 1 split + 1 feature + 1 question to answer.
 
-### Presentation
+## The threshold of interpretability
 
-Prepare a **5-minute presentation** of your metric and results across models and datasets (and, if
-applicable, your Task 2 findings). Commit it as [`presentation/presentation.pdf`](presentation/).
+`scripts/self_test.py` shows models of growing size (decision trees of depth 1–6 and a 3-tree forest) on
+Titanic. For each one, the person predicts by hand what the model says for 3 passengers and rates their
+understanding from 1 to 5. A model **passes** if all 3 predictions are right, the person didn't give up, and
+the rating is at least 3. The threshold is the cognitive load of the last model that passed before the first
+one failed.
 
-## Setup
+<!-- TODO: fill in after running the self-test -->
+**Our result:** threshold = _TODO_ mental steps.
 
-The repository is an installable Python package. We recommend [uv](https://docs.astral.sh/uv/):
+## Experiments
+
+- **Datasets** (`iml_interpretability/data.py`): Titanic (survival), German credit (credit risk), breast
+  cancer (benign or malignant), wine (3 cultivars). They differ in size (178–1309 rows), number of
+  features (8–48 after encoding) and number of classes.
+- **Models** (`iml_interpretability/models.py`): decision trees of depth 1–10 and unlimited, random forests
+  (3×depth 2, 10×depth 3, 100×depth 3, 100×unlimited) and gradient boosting (3×depth 1, 10×depth 2,
+  100×depth 3).
+- **Evaluation** (`iml_interpretability/evaluate.py`): 75/25 train/test split (seed 0), test accuracy and
+  the metric with all its parts for every (dataset, model) pair.
+
+## Reproduce
 
 ```bash
 uv sync --extra dev
-uv run pytest
-uv run python scripts/run_experiment.py
+uv run pytest                               # 10 tests
+uv run python scripts/self_test.py          # interactive, about 15 min, writes results/self_test.csv
+uv run python scripts/run_experiment.py     # writes results/scores.csv, summary.csv and the plot
 ```
 
-With plain pip:
-
-```bash
-python -m venv .venv && source .venv/bin/activate
-pip install -e ".[dev]"
-```
-
-The first run downloads the Titanic dataset from OpenML and caches it in `data/` (relative to the
-directory you run from). You may use that dataset, but dont you want to rather look at something existing?
+`run_experiment.py` reads `results/self_test.csv` if it exists and draws the threshold into
+`results/accuracy_vs_cognitive_load.png`. Titanic and credit are downloaded from OpenML on the first run and
+cached in `data/`.
 
 ## Repository structure
 
 ```
 iml_interpretability/
-├── data.py        # Dataset container + load_titanic(); add your own datasets here
-├── models.py      # get_models(): the models you compare (example: one decision tree)
-├── metric.py      # InterpretabilityMetric base class + RelativeNumberOfLeaves (example)
-└── evaluate.py    # evaluate(): fits all models on all datasets and computes all metrics
+├── data.py        # the 4 datasets
+├── models.py      # the 18 models (trees, forests, boosting)
+├── metric.py      # CognitiveLoad and its parts S, F, Q, T
+└── evaluate.py    # fits all models on all datasets and computes accuracy + metrics (from the template)
 scripts/
-└── run_experiment.py   # runs evaluate() and writes results/scores.csv
-tests/                  # pytest tests
-presentation/           # put presentation.pdf here
+├── run_experiment.py   # main experiment + plot
+└── self_test.py        # human self-test for the threshold
+tests/                  # pytest tests for the metric and the pipeline
+presentation/           # presentation.pdf
 ```
 
-The repository runs end to end on a minimal example: a single scikit-learn decision tree on
-Titanic, scored by its number of leaves relative to the maximum possible for its depth (`RelativeNumberOfLeaves` in
-[`iml_interpretability/metric.py`](iml_interpretability/metric.py)). Replace this example with your
-own metric, models and datasets. You are free to restructure everything, as long as the package
-stays installable and your results stay reproducible from the scripts in this repository.
+## Limitations
 
-## Code style
-
-Please keep your code clean and consistent. We recommend [ruff](https://docs.astral.sh/ruff/) as
-linter and formatter. A configuration is already included in `pyproject.toml`:
-
-## Submission
-
-- Submit your code and presentation by **Sunday, November 15th, 2026, 23:59**.
-- Your fork contains your code, the scripts that reproduce your results, and
-  `presentation/presentation.pdf`.
-- **Rewrite this README.** Replace the template text with a short description of your approach and
-  how to reproduce your results.
-- **Mandatory:** replace the [AI statement](#ai-statement) below with your own, stating how you
-  used AI tools (or that you did not use any).
+- Equal weights for the four parts are a simplifying assumption; a reading step and a lookup step may not
+  be equally hard.
+- The self-test has one participant, few passengers per model, and shows models from small to large, so
+  practice effects are possible.
+- Accuracy comes from a single train/test split; small datasets (wine has 45 test rows) are noisy.
 
 ## AI statement
 
-> **Mandatory.** Replace this example with your own: which AI tools you used, for what, and how you
-> checked their output (or that you used none).
-
-*Example:* I created this repository with Claude Code (Claude Opus 5.5). After clarifying the scope
-with it, it generated the code, tests and README based on my own projects as style references. I
-reviewed and edited the result and checked that it runs. I take full responsibility for and
-ownership of the content of this repository.
+<!-- TODO: write this yourself. Say which AI tool you used (e.g. Claude Code), for what (which files or
+steps), how you checked the output, and what you did yourself. -->
+_TODO_
